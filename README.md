@@ -1,3 +1,3 @@
-# STAT938-Final-Project
+# Dasher XLS solutio
 
-STAT938 Final Project Repository with our algorithm
+Dasher XLS solutio Repository with our proposed algorithm
