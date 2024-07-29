@@ -1,0 +1,174 @@
+---
+title: "Final Project Test"
+author: "Daniel Zhang"
+date: "03/07/2024"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#data = read.csv('impact_points_mock.csv')
+data = read.csv('impact_points_complete.csv')
+```
+
+
+```{r}
+head(data)
+```
+
+```{r}
+plot(data$x, data$y, main = "Mock Impact Points", xlab = "x", ylab = "y")
+```
+
+
+
+```{r}
+library(mclust)
+library(MASS)
+library(mvtnorm)
+```
+
+```{r}
+theta = 0.05
+gamma = 0.95
+B = 10
+```
+
+```{r}
+model = densityMclust(data, plot = FALSE)
+model_bs = MclustBootstrap(model, nboot = B)
+```
+
+
+take determinants of each var-cov matrix order, sum them (or something else) and take 95th percentile variance. Use original mean and pro and plot using sim (from mclust) with parameters ( mean, pro, variance). Then fit another densityMclust on top and plot it
+
+```{r}
+dim(model_bs$mean)
+
+```
+
+
+```{r}
+avg_dets = c()
+
+for (i in 1:B){
+  det_vec = c()
+  for (j in 1:8){
+    var_mat = model_bs$variance[i, , ,j]
+    determin = det(var_mat)
+    det_vec[j] = determin
+  }
+  
+  avg_det = mean(det_vec)
+  avg_dets[i] = avg_det
+  
+}
+```
+
+```{r}
+gamma_percentile = quantile(avg_dets, gamma)
+index =  which.min(abs(avg_dets - gamma_percentile))
+
+```
+
+```{r}
+gamma_var_matrix = model_bs$variance[index, , ,]
+```
+
+Simulate function
+```{r}
+#params = list(pro = model$parameters$pro,
+ #             mean = model$parameters$mean,
+  #            variance = gamma_var_matrix)
+
+means = list()
+
+for (i in 1:8){
+  
+  mean_vec = list(as.numeric(model$parameters$mean[,i]))
+  means = append(means, mean_vec)
+}
+
+```
+
+
+```{r}
+covariances = list()
+
+for(i in 1:8){
+  
+  #print(as.matrix(gamma_var_matrix[,,i]))
+  cov_matrix = list(as.matrix(gamma_var_matrix[,,i]))
+  covariances = append(covariances, cov_matrix)
+}
+```
+
+```{r}
+#set_first_column_zero_if_first_is_zero <- function(row) {
+ # if (row[1] == 0) {
+ #   row[1] <- 0
+ # }
+ # return(row)
+#}
+```
+
+```{r}
+proportions = model$parameters$pro
+n <- 1000000
+
+# Generate data based on the specified parameters
+datav2 <- NULL
+for (i in 1:8) {
+  n_i <- round(proportions[i] * n)
+  data_i <- mvrnorm(n_i, mu=means[[i]], Sigma=covariances[[i]])
+  
+  #data_i[data_i < 0 ] <- 0
+  #data_i_v2 =  t(apply(data_i, 1, set_first_column_zero_if_first_is_zero))
+  datav2 <- rbind(datav2, data_i)
+}
+
+```
+
+```{r}
+#for (i in 1:dim(datav2)[1]){
+  # Set x coordinate to 0
+ # if(datav2[i,1] < 0){
+ #   datav2[i,1] = 0
+ # }
+#}
+
+```
+
+
+```{r}
+modelv2 = densityMclust(datav2, plot = FALSE)
+```
+
+
+```{r}
+#plot(data$x, data$y, col = "grey", pch = 20, cex = 0.5, xlab = "x", ylab = "y", xlim = c(-10,10), ylim = c(-12,6),main = bquote(plain("EB with ") ~ theta == .(theta) ~ plain(" and ") ~ gamma == .(gamma*100)))
+#plot(modelv2, what="density", levels = quantile(modelv2$density, theta), col = 'red', xlim = c(-10,10), ylim = c(-12,6),drawlabels = FALSE, add = TRUE)
+```
+
+```{r}
+plot(data$x, data$y, col = "grey", pch = 20, cex = 0.5, xlab = "x", ylab = "y",
+     xlim = c(0,6500),main = bquote(plain("EB with ") ~ theta == .(theta) ~ plain(" and ") ~ gamma == .(gamma*100)))
+plot(modelv2, what="density", levels = quantile(modelv2$density, theta), col = 'red', xlim = c(-15000,10000),
+     ylim = c(-2000, 2000), drawlabels = FALSE, add = TRUE)
+```
+
+
+
+
+
+
+
+```{r}
+plot(datav2[,1], datav2[,2])
+```
+
+
+
